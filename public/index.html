@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unduhin — Unduh video & foto tanpa watermark</title>
+  <meta name="description" content="Unduh video, audio, dan foto dari TikTok, YouTube, Instagram, Facebook, X, dan platform lain tanpa watermark. Gratis, cepat, tanpa aplikasi.">
+  <meta name="theme-color" content="#08080f">
+  <meta property="og:title" content="Unduhin — Unduh video & foto tanpa watermark">
+  <meta property="og:description" content="Tempel tautan, pilih kualitas, unduh. Gratis dan tanpa watermark.">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="ambient" aria-hidden="true">
+    <span class="glow glow-pink"></span>
+    <span class="glow glow-cyan"></span>
+    <span class="glow glow-purple"></span>
+    <span class="grid-lines"></span>
+  </div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/" aria-label="Unduhin, kembali ke beranda">
+        <span class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 32 32" role="img">
+            <path d="M16 5v14m0 0 5.5-5.5M16 19l-5.5-5.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 22v2.5A2.5 2.5 0 0 0 9.5 27h13a2.5 2.5 0 0 0 2.5-2.5V22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
+          </svg>
+        </span>
+        <span class="brand-name">Unduhin</span>
+      </a>
+      <nav class="site-nav" aria-label="Navigasi utama">
+        <a href="#cara-pakai">Cara pakai</a>
+        <a href="#faq">FAQ</a>
+        <a class="nav-cta" href="#unduh">Mulai</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero container" id="unduh">
+      <div class="hero-copy">
+        <span class="eyebrow">
+          <span class="pulse-dot" aria-hidden="true"></span>
+          Gratis · Tanpa watermark · Tanpa aplikasi
+        </span>
+        <h1>Simpan video &amp; foto favoritmu, <span class="gradient-text">tanpa watermark.</span></h1>
+        <p class="hero-lead">Tempel satu tautan dari TikTok, YouTube, Instagram, Facebook, X, dan lainnya. Pilih kualitas, lalu unduh langsung ke perangkatmu.</p>
+      </div>
+
+      <div class="download-card">
+        <form id="download-form" class="download-form" novalidate>
+          <label class="sr-only" for="url-input">Tautan video atau foto</label>
+          <div class="input-shell">
+            <span class="input-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M10.6 13.4a4 4 0 0 0 5.7 0l2.6-2.6a4 4 0 1 0-5.7-5.7l-1.4 1.4M13.4 10.6a4 4 0 0 0-5.7 0l-2.6 2.6a4 4 0 1 0 5.7 5.7l1.4-1.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            </span>
+            <input id="url-input" name="url" type="url" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="Tempel tautan di sini..." aria-describedby="form-hint" required>
+            <button id="paste-btn" class="paste-btn" type="button">Tempel</button>
+          </div>
+          <button id="submit-btn" class="primary-btn" type="submit">
+            <span class="btn-label">Ambil media</span>
+            <span class="btn-spinner" aria-hidden="true"></span>
+            <svg class="btn-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+        </form>
+        <p class="form-hint" id="form-hint">Mendukung tautan publik. Konten privat membutuhkan cookies server.</p>
+      </div>
+
+      <div id="error-box" class="error-box" role="alert" hidden>
+        <span class="error-icon" aria-hidden="true">!</span>
+        <span id="error-text"></span>
+      </div>
+
+      <div class="platform-row" aria-label="Platform populer">
+        <span class="platform-pill tiktok"><i aria-hidden="true"></i>TikTok</span>
+        <span class="platform-pill youtube"><i aria-hidden="true"></i>YouTube</span>
+        <span class="platform-pill instagram"><i aria-hidden="true"></i>Instagram</span>
+        <span class="platform-pill facebook"><i aria-hidden="true"></i>Facebook</span>
+        <span class="platform-pill x"><i aria-hidden="true"></i>X</span>
+        <span class="platform-pill more">+ lainnya</span>
+      </div>
+    </section>
+
+    <section class="container section-block" aria-labelledby="preview-heading">
+      <div id="preview" class="preview-card" hidden>
+        <div class="preview-media">
+          <img id="preview-thumb" class="preview-thumb" alt="" hidden>
+          <div id="preview-thumb-fallback" class="thumb-fallback" aria-hidden="true">
+            <svg viewBox="0 0 48 48"><rect x="6" y="9" width="36" height="30" rx="6" fill="none" stroke="currentColor" stroke-width="2.4"/><path d="m11 33 9-10 6 6 4-4 7 8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="31" cy="18" r="3" fill="currentColor"/></svg>
+          </div>
+          <span id="preview-source" class="source-badge">Media</span>
+        </div>
+        <div class="preview-body">
+          <div class="preview-topline">
+            <span id="preview-kind-label" class="eyebrow small">Siap diproses</span>
+            <span id="preview-duration" class="duration-chip" hidden></span>
+          </div>
+          <h2 id="preview-heading" class="preview-title">Judul media</h2>
+          <p id="preview-uploader" class="preview-uploader" hidden></p>
+          <p id="preview-kind-note" class="preview-note" hidden>Pilih foto yang ingin diunduh, atau unduh semua.</p>
+
+          <section id="photo-picker" class="photo-picker" aria-labelledby="photo-picker-label" hidden>
+            <div class="photo-picker-head">
+              <span id="photo-picker-label" class="field-label">Pilih foto</span>
+              <span id="photo-count" class="photo-count" aria-live="polite"></span>
+            </div>
+            <div id="photo-list" class="photo-list" role="group" aria-label="Pilihan foto"></div>
+            <div class="photo-tools">
+              <button id="photo-select-all" class="text-btn" type="button">Pilih semua</button>
+              <button id="photo-clear" class="text-btn" type="button">Hapus pilihan</button>
+            </div>
+          </section>
+
+          <div id="quality-wrap" class="quality-wrap">
+            <span class="field-label">Pilih kualitas</span>
+            <div id="quality-list" class="quality-list" role="group" aria-label="Pilihan kualitas"></div>
+          </div>
+
+          <div class="preview-actions">
+            <button id="download-video-btn" class="primary-btn" type="button">
+              <span class="btn-label">Unduh video</span>
+              <svg class="btn-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button id="download-audio-btn" class="secondary-btn" type="button">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 18V6l10-2v12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="16.5" cy="16" r="2.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
+              <span class="btn-label">MP3</span>
+            </button>
+            <button id="download-selected-photos-btn" class="primary-btn" type="button" hidden>
+              <span class="btn-label">Unduh foto terpilih</span>
+              <svg class="btn-arrow" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+            <button id="download-photo-btn" class="secondary-btn" type="button" hidden>
+              <span class="btn-label">Unduh semua foto</span>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0 4.5-4.5M12 15l-4.5-4.5M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="container section-block" aria-labelledby="progress-title">
+      <div id="progress-card" class="progress-card" hidden>
+        <div class="progress-head">
+          <div>
+            <span class="eyebrow small">Sedang diproses</span>
+            <h2 id="progress-title" class="progress-title">Menyiapkan unduhan...</h2>
+          </div>
+          <div class="progress-side">
+            <span id="progress-percent" class="progress-percent">0%</span>
+            <button id="cancel-btn" class="text-btn" type="button">Batalkan</button>
+          </div>
+        </div>
+        <div class="progress-track" role="progressbar" aria-label="Progres unduhan" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+          <span id="progress-fill" class="progress-fill"></span>
+        </div>
+        <div class="progress-foot">
+          <span id="progress-status" aria-live="polite">Menghubungkan ke server...</span>
+          <span id="progress-detail"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="container section-block" aria-labelledby="result-title">
+      <div id="result-card" class="result-card" hidden>
+        <div class="result-head">
+          <div>
+            <span class="eyebrow small">Unduhan selesai</span>
+            <h2 id="result-title" class="result-title">Siap disimpan</h2>
+          </div>
+          <div class="result-actions">
+            <a id="zip-btn" class="secondary-btn" href="#" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4V3Z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
+              Unduh ZIP
+            </a>
+            <button id="new-btn" class="text-btn" type="button">Unduhan baru</button>
+          </div>
+        </div>
+        <p id="result-meta" class="result-meta"></p>
+        <div id="result-files" class="result-files"></div>
+      </div>
+    </section>
+
+    <section class="container steps" id="cara-pakai" aria-labelledby="steps-title">
+      <div class="section-heading">
+        <span class="eyebrow">Semudah itu</span>
+        <h2 id="steps-title">Tiga langkah, media tersimpan.</h2>
+      </div>
+      <div class="step-grid">
+        <article class="step-card">
+          <span class="step-number">01</span>
+          <h3>Salin tautan</h3>
+          <p>Buka aplikasi atau situs sumber, lalu salin tautan video, postingan, atau foto yang ingin disimpan.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-number">02</span>
+          <h3>Tempel &amp; pilih</h3>
+          <p>Tempel tautan di Unduhin. Kami menampilkan judul, kualitas, dan opsi audio yang tersedia.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-number">03</span>
+          <h3>Unduh</h3>
+          <p>Pilih kualitas, tekan unduh, dan file akan disiapkan tanpa watermark. Foto galeri bisa diunduh sebagai ZIP.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="container faq" id="faq" aria-labelledby="faq-title">
+      <div class="section-heading">
+        <span class="eyebrow">Pertanyaan umum</span>
+        <h2 id="faq-title">Hal yang perlu kamu tahu.</h2>
+      </div>
+      <div class="faq-list">
+        <details>
+          <summary>Apakah benar-benar tanpa watermark?</summary>
+          <p>Untuk platform yang menyediakan sumber media tanpa watermark, Unduhin memilih sumber tersebut. Contohnya TikTok diambil dari aliran video utama, bukan versi bertanda air. Jika platform hanya menyediakan versi berwatermark, unduhan mungkin gagal daripada menampilkan hasil yang tidak diinginkan.</p>
+        </details>
+        <details>
+          <summary>Kenapa ada konten yang gagal diunduh?</summary>
+          <p>Konten privat, dibatasi wilayah, memerlukan login, atau sedang dibatasi platform tidak bisa diakses server. Instagram dan Facebook sering membutuhkan cookies server untuk postingan tertentu. Coba tautan publik lain atau ulangi beberapa saat lagi.</p>
+        </details>
+        <details>
+          <summary>Berapa lama file tersedia?</summary>
+          <p>File disimpan sementara di server selama sekitar 60 menit, lalu dihapus otomatis. Unduh sebelum tautan kedaluwarsa. Server tidak menyimpan riwayat unduhan.</p>
+        </details>
+        <details>
+          <summary>Apakah aman dan gratis?</summary>
+          <p>Unduhin gratis dan tidak meminta kata sandi akun. Jangan pernah mengirim tautan privat atau cookies akunmu. Gunakan hanya untuk konten yang kamu berhak simpan dan patuhi ketentuan platform.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <span class="brand-mark small" aria-hidden="true">
+          <svg viewBox="0 0 32 32"><path d="M16 5v14m0 0 5.5-5.5M16 19l-5.5-5.5" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M7 22v2.5A2.5 2.5 0 0 0 9.5 27h13a2.5 2.5 0 0 0 2.5-2.5V22" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg>
+        </span>
+        <span>Unduhin</span>
+      </div>
+      <p>Simpan konten yang kamu berhak miliki. Hormati hak cipta dan ketentuan platform.</p>
+      <span class="footer-note">Dibuat untuk web. Tanpa aplikasi.</span>
+    </div>
+  </footer>
+
+  <script src="/app.js" defer></script>
+</body>
+</html>

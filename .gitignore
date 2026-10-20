@@ -1,0 +1,15 @@
+.env.*
+!.env.example
+cookies/
+node_modules/
+tmp/
+*.log
+*.txt
+# Local secrets and generated files
+.env
+.env.*
+!.env.example
+cookies/
+node_modules/
+tmp/
+*.log
