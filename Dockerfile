@@ -13,7 +13,7 @@ RUN apt-get update \
       tini \
     && rm -rf /var/lib/apt/lists/* \
     && python3 -m pip install --break-system-packages --no-cache-dir \
-      yt-dlp==2026.08.19 \
+      yt-dlp \
       gallery-dl==1.32.17
 
 WORKDIR /app
