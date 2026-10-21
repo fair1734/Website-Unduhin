@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
+const { spawnSync } = require('node:child_process');
 const config = require('../config');
 const { AppError } = require('../lib/errors');
 const { contentDisposition, mimeFor, sanitizeFilename } = require('../lib/files');
@@ -8,12 +9,12 @@ const resolver = require('../services/resolver');
 const jobs = require('../services/jobs');
 const ytdlp = require('../services/ytdlp');
 const gallerydl = require('../services/gallerydl');
-const { spawnSync } = require('node:child_process');
 
 const router = express.Router();
 
 function parseRange(header, size) {
   if (!header) return null;
+
   const match = /^bytes=(\d*)-(\d*)$/.exec(String(header).trim());
   if (!match) return { invalid: true };
 
@@ -23,9 +24,12 @@ function parseRange(header, size) {
 
   let start;
   let end;
+
   if (!hasStart) {
     const suffix = Number(match[2]);
-    if (!Number.isFinite(suffix) || suffix <= 0) return { invalid: true };
+    if (!Number.isFinite(suffix) || suffix <= 0) {
+      return { invalid: true };
+    }
     start = Math.max(0, size - suffix);
     end = size - 1;
   } else {
@@ -33,7 +37,12 @@ function parseRange(header, size) {
     end = hasEnd ? Number(match[2]) : size - 1;
   }
 
-  if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || start >= size) {
+  if (
+    !Number.isFinite(start) ||
+    !Number.isFinite(end) ||
+    start > end ||
+    start >= size
+  ) {
     return { invalid: true };
   }
 
@@ -49,7 +58,11 @@ router.get('/health', async (req, res, next) => {
 
     const probe = spawnSync(
       config.galleryDlPath,
-      ['-c', 'import gallery_dl; print("import-ok")'],
+      [
+        ...(config.galleryDlArgs || []),
+        '-c',
+        'import gallery_dl; print("import-ok")'
+      ],
       {
         encoding: 'utf8',
         timeout: 8000,
@@ -57,11 +70,17 @@ router.get('/health', async (req, res, next) => {
       }
     );
 
-    const galleryDiagnostic = probe.error
-      ? probe.error.code || 'SPAWN_ERROR'
-      : probe.status !== 0
-        ? `EXIT_${probe.status}`
-        : 'OK';
+    let galleryDiagnostic;
+
+    if (probe.error) {
+      galleryDiagnostic = probe.error.code || 'SPAWN_ERROR';
+    } else if (probe.signal) {
+      galleryDiagnostic = `SIGNAL_${probe.signal}`;
+    } else if (probe.status !== 0) {
+      galleryDiagnostic = `EXIT_${probe.status}`;
+    } else {
+      galleryDiagnostic = 'OK';
+    }
 
     const ok = Boolean(ytdlpVersion && gallerydlVersion);
 
@@ -86,26 +105,6 @@ router.get('/health', async (req, res, next) => {
     next(error);
   }
 });
-  try {
-    const [ytdlpVersion, gallerydlVersion] = await Promise.all([
-      ytdlp.getVersion(),
-      gallerydl.getVersion()
-    ]);
-    const ok = Boolean(ytdlpVersion && gallerydlVersion);
-    res.status(ok ? 200 : 503);
-    res.set('Cache-Control', 'no-store');
-    res.json({
-      ok,
-      uptime: Math.round(process.uptime()),
-      tools: {
-        ytdlp: ytdlpVersion,
-        galleryDl: gallerydlVersion
-      }
-    });
-  } catch (error) {
-    next(error);
-  }
-});
 
 router.post('/resolve', async (req, res) => {
   const data = await resolver.resolve(req.body?.url, req.signal);
@@ -121,6 +120,7 @@ router.post('/jobs', async (req, res) => {
     title: req.body?.title,
     photoIndices: req.body?.photoIndices
   });
+
   res.status(201);
   res.set('Cache-Control', 'no-store');
   res.json({ ok: true, job });
@@ -134,6 +134,7 @@ router.get('/jobs/:id', (req, res) => {
 
 router.get('/jobs/:id/events', (req, res) => {
   const job = jobs.requireJob(req.params.id);
+
   res.status(200);
   res.set({
     'Content-Type': 'text/event-stream; charset=utf-8',
@@ -141,6 +142,7 @@ router.get('/jobs/:id/events', (req, res) => {
     Connection: 'keep-alive',
     'X-Accel-Buffering': 'no'
   });
+
   res.flushHeaders();
   jobs.subscribe(job, res);
 });
@@ -160,14 +162,17 @@ router.delete('/jobs/:id', async (req, res) => {
 router.get('/jobs/:id/file', async (req, res, next) => {
   try {
     const rawIndex = String(req.query.i ?? '');
+
     if (!/^\d+$/.test(rawIndex)) {
       throw new AppError('INVALID_FILE', 'Indeks file tidak valid.', 400);
     }
-    const index = Number.parseInt(rawIndex, 10);
 
-    const { job, file } = jobs.getJobFile(req.params.id, index);
+    const index = Number.parseInt(rawIndex, 10);
+    const { file } = jobs.getJobFile(req.params.id, index);
     const stat = await fs.promises.stat(file.path);
-    const disposition = req.query.download === '1' ? 'attachment' : 'inline';
+    const disposition = req.query.download === '1'
+      ? 'attachment'
+      : 'inline';
     const filename = path.basename(file.name);
     const range = parseRange(req.headers.range, stat.size);
 
@@ -188,26 +193,33 @@ router.get('/jobs/:id/file', async (req, res, next) => {
 
     if (range) {
       const { start, end } = range;
+
       res.status(206);
       res.set({
         'Content-Range': `bytes ${start}-${end}/${stat.size}`,
         'Content-Length': String(end - start + 1)
       });
+
       const stream = fs.createReadStream(file.path, { start, end });
+
       stream.on('error', (error) => {
         if (!res.headersSent) next(error);
         else res.destroy(error);
       });
+
       stream.pipe(res);
       return;
     }
 
     res.set('Content-Length', String(stat.size));
+
     const stream = fs.createReadStream(file.path);
+
     stream.on('error', (error) => {
       if (!res.headersSent) next(error);
       else res.destroy(error);
     });
+
     stream.pipe(res);
   } catch (error) {
     next(error);
@@ -218,14 +230,25 @@ router.get('/jobs/:id/zip', async (req, res, next) => {
   try {
     const { ZipArchive } = await import('archiver');
     const job = jobs.requireJob(req.params.id);
+
     if (job.status !== 'ready') {
-      throw new AppError('JOB_NOT_READY', 'Unduhan belum selesai.', 409);
+      throw new AppError(
+        'JOB_NOT_READY',
+        'Unduhan belum selesai.',
+        409
+      );
     }
+
     if (!job.files.length) {
-      throw new AppError('FILE_NOT_FOUND', 'File tidak ditemukan.', 404);
+      throw new AppError(
+        'FILE_NOT_FOUND',
+        'File tidak ditemukan.',
+        404
+      );
     }
 
     const zipName = `${sanitizeFilename(job.title, 'unduhin')}.zip`;
+
     res.set({
       'Content-Type': 'application/zip',
       'Content-Disposition': contentDisposition(zipName, 'attachment'),
@@ -233,25 +256,37 @@ router.get('/jobs/:id/zip', async (req, res, next) => {
     });
 
     const archive = new ZipArchive({ zlib: { level: 6 } });
+
     archive.on('warning', (error) => {
-      if (error.code !== 'ENOENT' && !res.headersSent) next(error);
+      if (error.code !== 'ENOENT' && !res.headersSent) {
+        next(error);
+      }
     });
+
     archive.on('error', (error) => {
       if (!res.headersSent) next(error);
       else res.destroy(error);
     });
+
     res.on('close', () => {
       if (!res.writableEnded) archive.abort();
     });
 
     archive.pipe(res);
+
     job.files.forEach((file, index) => {
-      const basename = sanitizeFilename(path.basename(file.name), `file-${index + 1}`);
+      const basename = sanitizeFilename(
+        path.basename(file.name),
+        `file-${index + 1}`
+      );
+
       const name = job.format === 'photo'
         ? basename
         : `${String(index + 1).padStart(2, '0')}-${basename}`;
+
       archive.append(fs.createReadStream(file.path), { name });
     });
+
     await archive.finalize();
   } catch (error) {
     next(error);
