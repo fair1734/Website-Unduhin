@@ -1,12 +1,15 @@
-
 {
   "version": 2,
+  "buildCommand": "npm run vercel-build",
   "builds": [
     {
       "src": "src/app.js",
       "use": "@vercel/node",
       "config": {
-        "includeFiles": "public/**"
+        "includeFiles": [
+          "public/**",
+          "bin/**"
+        ]
       }
     }
   ],
