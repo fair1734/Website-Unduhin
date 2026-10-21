@@ -36,6 +36,25 @@ async function main() {
       : 'Python3 tidak tersedia saat build; gallery-dl belum dipasang.'
   );
 
+  const pip = spawnSync('python3', [
+    '-m',
+    'pip',
+    'install',
+    '--target',
+    path.join(binDir, 'python-packages'),
+    'gallery-dl'
+  ], {
+    encoding: 'utf8',
+    timeout: 120000
+  });
+
+  if (pip.status !== 0) {
+    console.error('Gagal memasang gallery-dl:');
+    console.error(pip.stderr || pip.stdout || pip.error);
+  } else {
+    console.log('gallery-dl berhasil dipasang ke bin/python-packages.');
+  }
+
   console.log('yt-dlp berhasil diunduh.');
 }
 
