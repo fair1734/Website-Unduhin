@@ -1,6 +1,6 @@
-
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const { spawnSync } = require('node:child_process');
 
 async function main() {
   if (process.env.VERCEL !== '1') {
@@ -22,10 +22,19 @@ async function main() {
     throw new Error(`Gagal mengunduh yt-dlp: HTTP ${response.status}`);
   }
 
-  const data = Buffer.from(await response.arrayBuffer());
-  await fs.writeFile(temp, data);
+  await fs.writeFile(temp, Buffer.from(await response.arrayBuffer()));
   await fs.rename(temp, target);
   await fs.chmod(target, 0o755);
+
+  const python = spawnSync('python3', ['--version'], {
+    encoding: 'utf8'
+  });
+
+  console.log(
+    python.status === 0
+      ? `Python tersedia: ${(python.stdout || python.stderr).trim()}`
+      : 'Python3 tidak tersedia saat build; gallery-dl belum dipasang.'
+  );
 
   console.log('yt-dlp berhasil diunduh.');
 }
