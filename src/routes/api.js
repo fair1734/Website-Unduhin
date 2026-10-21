@@ -1,7 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
-const { ZipArchive } = require('archiver');
 const config = require('../config');
 const { AppError } = require('../lib/errors');
 const { contentDisposition, mimeFor, sanitizeFilename } = require('../lib/files');
@@ -171,6 +170,7 @@ router.get('/jobs/:id/file', async (req, res, next) => {
 
 router.get('/jobs/:id/zip', async (req, res, next) => {
   try {
+    const { ZipArchive } = await import('archiver');
     const job = jobs.requireJob(req.params.id);
     if (job.status !== 'ready') {
       throw new AppError('JOB_NOT_READY', 'Unduhan belum selesai.', 409);
