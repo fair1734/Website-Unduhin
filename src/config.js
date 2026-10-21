@@ -1,4 +1,5 @@
 const path = require('node:path');
+const fs = require('node:fs');
 
 const rootDir = path.resolve(__dirname, '..');
 
@@ -17,7 +18,11 @@ module.exports = {
   siteAddress: process.env.SITE_ADDRESS || `http://localhost:${port}`,
   tmpDir: path.resolve(process.env.TMP_DIR || path.join(rootDir, 'tmp')),
   cookiesFile: path.resolve(process.env.COOKIES_FILE || path.join(rootDir, 'cookies', 'cookies.txt')),
-  ytdlpPath: process.env.YTDLP_PATH || 'yt-dlp',
+  ytdlpPath: process.env.YTDLP_PATH || (
+  fs.existsSync(path.join(rootDir, 'bin', 'yt-dlp'))
+    ? path.join(rootDir, 'bin', 'yt-dlp')
+    : 'yt-dlp'
+),
   galleryDlPath: process.env.GALLERY_DL_PATH || 'gallery-dl',
   maxConcurrent: intEnv('MAX_CONCURRENT', 2, 1, 6),
   maxQueue: intEnv('MAX_QUEUE', 12, 1, 100),
