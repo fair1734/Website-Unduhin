@@ -23,7 +23,11 @@ module.exports = {
     ? path.join(rootDir, 'bin', 'yt-dlp')
     : 'yt-dlp'
 ),
-  galleryDlPath: process.env.GALLERY_DL_PATH || 'gallery-dl',
+  galleryDlPath: process.env.GALLERY_DL_PATH || 'python3',
+galleryDlArgs: [
+  '-m',
+  'gallery_dl',
+],
   maxConcurrent: intEnv('MAX_CONCURRENT', 2, 1, 6),
   maxQueue: intEnv('MAX_QUEUE', 12, 1, 100),
   jobTtlMs: intEnv('JOB_TTL_MIN', 60, 5, 1440) * 60000,
