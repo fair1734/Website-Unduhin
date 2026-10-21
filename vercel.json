@@ -1,5 +1,6 @@
+
 {
-  "version": 2,
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "buildCommand": "npm run vercel-build",
   "builds": [
     {
@@ -11,9 +12,17 @@
           "bin/**"
         ]
       }
+    },
+    {
+      "src": "api/python-check.py",
+      "use": "@vercel/python"
     }
   ],
   "routes": [
+    {
+      "src": "/api/python-check",
+      "dest": "/api/python-check.py"
+    },
     {
       "src": "/(.*)",
       "dest": "src/app.js"
