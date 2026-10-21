@@ -6,6 +6,13 @@ const { listMediaFiles } = require('../lib/files');
 const { platformForHost } = require('../lib/url');
 const tiktok = require('./tiktok');
 
+const path = require('node:path');
+
+process.env.PYTHONPATH = [
+  path.join(__dirname, '..', '..', 'bin', 'python-packages'),
+  process.env.PYTHONPATH
+].filter(Boolean).join(path.delimiter);
+
 let versionCache = { value: null, checkedAt: 0 };
 
 function commonArgs() {
@@ -54,7 +61,8 @@ async function downloadPhotos({ url, jobDir, signal, platform, photoIndices, pos
     );
   }
 
-  const args = [
+    const args = [
+    ...(config.galleryDlArgs || []),
     ...commonArgs(),
     '-D', jobDir,
     '-f', '{num:03d}_{filename}.{extension}',
@@ -100,7 +108,11 @@ async function getVersion() {
   }
 
   try {
-    const result = await runCommand(config.galleryDlPath, ['--version'], { timeoutMs: 8000, maxOutputBytes: 65536 });
+    const result = await runCommand(
+  config.galleryDlPath,
+  [...(config.galleryDlArgs || []), '--version'],
+  { timeoutMs: 8000, maxOutputBytes: 65536 }
+);
     versionCache = {
       value: result.code === 0 ? result.stdout.trim().split('\n')[0] : null,
       checkedAt: Date.now()
