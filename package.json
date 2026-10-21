@@ -10,7 +10,8 @@
     "cli": "node bin/unduhin-cli.js",
     "test": "node --test test/*.test.js",
     "check": "node scripts/check.js",
-    "lint": "node scripts/check.js"
+    "lint": "node scripts/check.js",
+"vercel-build": "node scripts/install-ytdlp.js"
   },
   "engines": {
     "node": ">=22.12.0"
