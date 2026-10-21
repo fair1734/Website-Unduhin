@@ -8,6 +8,7 @@ const resolver = require('../services/resolver');
 const jobs = require('../services/jobs');
 const ytdlp = require('../services/ytdlp');
 const gallerydl = require('../services/gallerydl');
+const { spawnSync } = require('node:child_process');
 
 const router = express.Router();
 
@@ -40,6 +41,51 @@ function parseRange(header, size) {
 }
 
 router.get('/health', async (req, res, next) => {
+  try {
+    const [ytdlpVersion, gallerydlVersion] = await Promise.all([
+      ytdlp.getVersion(),
+      gallerydl.getVersion()
+    ]);
+
+    const probe = spawnSync(
+      config.galleryDlPath,
+      ['-c', 'import gallery_dl; print("import-ok")'],
+      {
+        encoding: 'utf8',
+        timeout: 8000,
+        env: process.env
+      }
+    );
+
+    const galleryDiagnostic = probe.error
+      ? probe.error.code || 'SPAWN_ERROR'
+      : probe.status !== 0
+        ? `EXIT_${probe.status}`
+        : 'OK';
+
+    const ok = Boolean(ytdlpVersion && gallerydlVersion);
+
+    res.status(ok ? 200 : 503);
+    res.set('Cache-Control', 'no-store');
+
+    res.json({
+      ok,
+      uptime: Math.round(process.uptime()),
+      tools: {
+        ytdlp: ytdlpVersion,
+        galleryDl: gallerydlVersion
+      },
+      diagnostics: {
+        pythonGalleryDl: galleryDiagnostic,
+        detail: probe.error
+          ? probe.error.message
+          : (probe.stderr || probe.stdout || '').trim().slice(0, 300)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
   try {
     const [ytdlpVersion, gallerydlVersion] = await Promise.all([
       ytdlp.getVersion(),
