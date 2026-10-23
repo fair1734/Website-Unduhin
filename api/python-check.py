@@ -9,12 +9,17 @@ import uuid
 
 def send_json(handler, status, data):
     body = json.dumps(data).encode("utf-8")
+
     handler.send_response(status)
     handler.send_header(
-        "Content-Type", "application/json; charset=utf-8"
+        "Content-Type",
+        "application/json; charset=utf-8"
     )
     handler.send_header("Cache-Control", "no-store")
-    handler.send_header("Content-Length", str(len(body)))
+    handler.send_header(
+        "Content-Length",
+        str(len(body))
+    )
     handler.end_headers()
     handler.wfile.write(body)
 
@@ -22,51 +27,69 @@ def send_json(handler, status, data):
 class handler(BaseHTTPRequestHandler):
 
     def do_GET(self):
+        data = {
+            "ok": False,
+            "python": sys.version.split()[0],
+            "galleryDl": None,
+            "blobSdk": False,
+            "blobTokenConfigured": bool(
+                os.environ.get("BLOB_READ_WRITE_TOKEN")
+            ),
+            "blobImportError": None,
+            "error": None
+        }
+
         try:
             result = subprocess.run(
-                [sys.executable, "-m", "gallery_dl", "--version"],
+                [
+                    sys.executable,
+                    "-m",
+                    "gallery_dl",
+                    "--version"
+                ],
                 capture_output=True,
                 text=True,
                 timeout=10
             )
 
-            try:
-                import vercel.blob
-                blob_sdk = True
-                blob_error = None
-            except Exception as e:
-                blob_sdk = False
-                blob_error = type(e).__name__
-
-            send_json(self, 200, {
-                "ok": (
-                    result.returncode == 0
-                    and blob_sdk
-                    and bool(os.environ.get("BLOB_READ_WRITE_TOKEN"))
-                ),
-                "python": sys.version.split()[0],
-                "galleryDl": result.stdout.strip() or None,
-                "blobSdk": blob_sdk,
-                "blobTokenConfigured": bool(
-                    os.environ.get("BLOB_READ_WRITE_TOKEN")
-                ),
-                "blobImportError": blob_error,
-                "error": (
+            if result.returncode == 0:
+                data["galleryDl"] = result.stdout.strip()
+            else:
+                data["error"] = (
                     result.stderr.strip()
-                    if result.returncode != 0 else None
+                    or "gallery-dl gagal dijalankan"
                 )
-            })
 
-        except Exception as e:
+            try:
+                from vercel.blob import put
+                data["blobSdk"] = callable(put)
+
+            except Exception as exc:
+                data["blobImportError"] = type(exc).__name__
+
+            data["ok"] = (
+                result.returncode == 0
+                and data["blobSdk"]
+                and data["blobTokenConfigured"]
+            )
+
+            send_json(self, 200, data)
+
+        except Exception as exc:
             send_json(self, 500, {
                 "ok": False,
-                "error": type(e).__name__
+                "error": type(exc).__name__
             })
 
     def do_POST(self):
-        expected = os.environ.get("PYTHON_FUNCTION_SECRET", "")
-        supplied = self.headers.get("X-Function-Secret", "")
+        expected = os.environ.get(
+            "PYTHON_FUNCTION_SECRET", ""
+        )
+        supplied = self.headers.get(
+            "X-Function-Secret", ""
+        )
 
+        # Autentikasi wajib.
         if not expected or not hmac.compare_digest(
             supplied, expected
         ):
@@ -76,7 +99,10 @@ class handler(BaseHTTPRequestHandler):
             })
             return
 
-        token = os.environ.get("BLOB_READ_WRITE_TOKEN", "")
+        token = os.environ.get(
+            "BLOB_READ_WRITE_TOKEN", ""
+        )
+
         if not token:
             send_json(self, 500, {
                 "ok": False,
@@ -85,31 +111,33 @@ class handler(BaseHTTPRequestHandler):
             return
 
         try:
-            from vercel.blob import BlobClient
+            from vercel.blob import put
 
-            client = BlobClient(token=token)
             pathname = (
-                f"diagnostics/blob-test-{uuid.uuid4().hex}.txt"
+                "diagnostics/blob-test-"
+                + uuid.uuid4().hex
+                + ".txt"
             )
 
-            uploaded = client.put(
+            uploaded = put(
                 pathname,
                 b"Website Unduhin private Blob upload test",
                 access="private",
                 content_type="text/plain",
-                add_random_suffix=True
+                add_random_suffix=True,
+                token=token
             )
 
             send_json(self, 200, {
                 "ok": True,
                 "uploaded": True,
                 "access": "private",
-                "pathname": uploaded.get("pathname", pathname)
-                if isinstance(uploaded, dict) else pathname
+                "pathname": uploaded.pathname
             })
 
-        except Exception as e:
+        except Exception as exc:
+            # Jangan pernah mengembalikan token atau secret.
             send_json(self, 500, {
                 "ok": False,
-                "error": type(e).__name__
+                "error": type(exc).__name__
             })
