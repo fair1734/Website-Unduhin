@@ -1,2 +1,2 @@
 gallery-dl
-vercel
+vercel>=0.5.0
