@@ -29,6 +29,12 @@
       "src": "/api/python-check",
       "dest": "/api/python-check.py"
     },
+
+    {
+      "src": "/api/blob-test",
+      "dest": "/api/blob-test.py"
+    },
+
     {
       "src": "/(.*)",
       "dest": "src/app.js"
