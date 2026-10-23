@@ -16,7 +16,13 @@
     {
       "src": "api/python-check.py",
       "use": "@vercel/python"
+    },
+
+    {
+      "src": "api/blob-test.py",
+      "use": "@vercel/python"
     }
+
   ],
   "routes": [
     {
