@@ -293,4 +293,33 @@ router.get('/jobs/:id/zip', async (req, res, next) => {
   }
 });
 
+/*
+ * ENDPOINT TES BLOB
+ * Mengunggah teks kecil ke Vercel Blob.
+ */
+router.post('/blob-upload-test', async (req, res, next) => {
+  try {
+    const { put } = await import('@vercel/blob');
+
+    const blob = await put(
+      'diagnostics/unduhin-test.txt',
+      'Unduhin Blob upload test OK',
+      {
+        access: 'private',
+        addRandomSuffix: true,
+        contentType: 'text/plain'
+      }
+    );
+
+    res.set('Cache-Control', 'no-store');
+    res.json({
+      ok: true,
+      message: 'Upload Blob berhasil',
+      pathname: blob.pathname
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 module.exports = router;
