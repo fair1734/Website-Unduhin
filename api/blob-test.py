@@ -1,66 +1,73 @@
 from http.server import BaseHTTPRequestHandler
+import asyncio
 import hmac
 import json
 import os
 
-from vercel.blob import BlobClient
-
+from vercel.blob import AsyncBlobClient
 
 class handler(BaseHTTPRequestHandler):
 
-    def do_GET(self):
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.end_headers()
-        self.wfile.write(
-            json.dumps({
-                "ok": True,
-                "message": "Blob test endpoint ready"
-            }).encode()
-        )
+def send_json(self, status, data):
+    body = json.dumps(data).encode("utf-8")
+    self.send_response(status)
+    self.send_header(
+        "Content-Type", "application/json; charset=utf-8"
+    )
+    self.send_header("Cache-Control", "no-store")
+    self.send_header("Content-Length", str(len(body)))
+    self.end_headers()
+    self.wfile.write(body)
 
-    def do_POST(self):
-        expected = os.environ.get("PYTHON_FUNCTION_SECRET", "")
-        supplied = self.headers.get("X-Function-Secret", "")
+def do_GET(self):
+    self.send_json(200, {
+        "ok": True,
+        "message": "Blob test endpoint ready"
+    })
 
-        if not expected or not hmac.compare_digest(
-            supplied, expected
-        ):
-            self.send_response(401)
-            self.end_headers()
-            return
+def do_POST(self):
+    expected = os.environ.get("PYTHON_FUNCTION_SECRET", "")
+    supplied = self.headers.get("X-Function-Secret", "")
 
-        try:
-            client = BlobClient()
-            uploaded = client.put(
-                "diagnostics/test.txt",
-                b"Website Unduhin Blob test",
-                access="private",
-                content_type="text/plain",
-                add_random_suffix=True,
-            )
+    if not expected or not hmac.compare_digest(
+        supplied, expected
+    ):
+        self.send_json(401, {
+            "ok": False,
+            "error": "Unauthorized"
+        })
+        return
 
-            body = json.dumps({
-                "ok": True,
-                "uploaded": True,
-                "pathname": uploaded.pathname,
-            }).encode()
+    if not os.environ.get("BLOB_READ_WRITE_TOKEN"):
+        self.send_json(500, {
+            "ok": False,
+            "error": "BLOB_READ_WRITE_TOKEN is not configured"
+        })
+        return
 
-            self.send_response(200)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+    try:
+        uploaded = asyncio.run(self.upload_test_blob())
 
-        except Exception as exc:
-            body = json.dumps({
-                "ok": False,
-                "error": type(exc).__name__,
-                "detail": str(exc)[:200],
-            }).encode()
+        self.send_json(200, {
+            "ok": True,
+            "uploaded": True,
+            "pathname": uploaded.pathname
+        })
 
-            self.send_response(500)
-            self.send_header("Content-Type", "application/json")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+    except Exception as exc:
+        self.send_json(500, {
+            "ok": False,
+            "error": type(exc).__name__,
+            "detail": str(exc)[:200]
+        })
+
+async def upload_test_blob(self):
+    client = AsyncBlobClient()
+
+    return await client.put(
+        "diagnostics/test.txt",
+        b"Website Unduhin Blob test",
+        access="private",
+        content_type="text/plain",
+        add_random_suffix=True
+    )
