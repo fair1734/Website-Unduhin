@@ -9,7 +9,6 @@ const resolver = require('../services/resolver');
 const jobs = require('../services/jobs');
 const ytdlp = require('../services/ytdlp');
 const gallerydl = require('../services/gallerydl');
-const BLOB_TEST_PATH = 'diagnostics/unduhin-test.txt';
 
 const router = express.Router();
 
