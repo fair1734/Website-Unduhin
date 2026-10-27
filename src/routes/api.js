@@ -20,6 +20,7 @@ function parseRange(header, size) {
 
   const hasStart = match[1] !== '';
   const hasEnd = match[2] !== '';
+
   if (!hasStart && !hasEnd) return { invalid: true };
 
   let start;
@@ -27,9 +28,11 @@ function parseRange(header, size) {
 
   if (!hasStart) {
     const suffix = Number(match[2]);
+
     if (!Number.isFinite(suffix) || suffix <= 0) {
       return { invalid: true };
     }
+
     start = Math.max(0, size - suffix);
     end = size - 1;
   } else {
@@ -46,9 +49,13 @@ function parseRange(header, size) {
     return { invalid: true };
   }
 
-  return { start, end: Math.min(end, size - 1) };
+  return {
+    start,
+    end: Math.min(end, size - 1)
+  };
 }
 
+/* HEALTH CHECK */
 router.get('/health', async (req, res, next) => {
   try {
     const [ytdlpVersion, gallerydlVersion] = await Promise.all([
@@ -106,12 +113,68 @@ router.get('/health', async (req, res, next) => {
   }
 });
 
+/* TES KONEKSI DATABASE NEON */
+router.get('/db-test', async (req, res) => {
+  const connectionString =
+    process.env.NEON_POSTGRES_URL ||
+    process.env.NEON_DATABASE_URL ||
+    process.env.NEON_POSTGRES_URL_NON_POOLING ||
+    process.env.DATABASE_URL;
+
+  res.set('Cache-Control', 'no-store');
+
+  if (!connectionString) {
+    return res.status(503).json({
+      ok: false,
+      database: 'not_configured'
+    });
+  }
+
+  let pool;
+
+  try {
+    const { Pool } = require('pg');
+
+    pool = new Pool({
+      connectionString,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 1000,
+      max: 1,
+      ssl: { rejectUnauthorized: false }
+    });
+
+    await pool.query('SELECT 1');
+
+    return res.json({
+      ok: true,
+      database: 'connected'
+    });
+  } catch (error) {
+    console.error(
+      'Neon connection test failed:',
+      error.code || error.name || 'UNKNOWN'
+    );
+
+    return res.status(503).json({
+      ok: false,
+      database: 'connection_failed'
+    });
+  } finally {
+    if (pool) {
+      await pool.end().catch(() => {});
+    }
+  }
+});
+
+/* RESOLVE URL */
 router.post('/resolve', async (req, res) => {
   const data = await resolver.resolve(req.body?.url, req.signal);
+
   res.set('Cache-Control', 'no-store');
   res.json({ ok: true, data });
 });
 
+/* BUAT JOB DOWNLOAD */
 router.post('/jobs', async (req, res) => {
   const job = await jobs.createJob({
     url: req.body?.url,
@@ -126,12 +189,18 @@ router.post('/jobs', async (req, res) => {
   res.json({ ok: true, job });
 });
 
+/* STATUS JOB */
 router.get('/jobs/:id', (req, res) => {
   const job = jobs.requireJob(req.params.id);
+
   res.set('Cache-Control', 'no-store');
-  res.json({ ok: true, job: jobs.publicJob(job) });
+  res.json({
+    ok: true,
+    job: jobs.publicJob(job)
+  });
 });
 
+/* EVENT STREAM */
 router.get('/jobs/:id/events', (req, res) => {
   const job = jobs.requireJob(req.params.id);
 
@@ -147,32 +216,43 @@ router.get('/jobs/:id/events', (req, res) => {
   jobs.subscribe(job, res);
 });
 
+/* BATALKAN JOB */
 router.post('/jobs/:id/cancel', async (req, res) => {
   const job = await jobs.cancelJob(req.params.id);
+
   res.set('Cache-Control', 'no-store');
   res.json({ ok: true, job });
 });
 
+/* HAPUS JOB */
 router.delete('/jobs/:id', async (req, res) => {
   await jobs.deleteJob(req.params.id);
+
   res.set('Cache-Control', 'no-store');
   res.json({ ok: true });
 });
 
+/* DOWNLOAD FILE */
 router.get('/jobs/:id/file', async (req, res, next) => {
   try {
     const rawIndex = String(req.query.i ?? '');
 
     if (!/^\d+$/.test(rawIndex)) {
-      throw new AppError('INVALID_FILE', 'Indeks file tidak valid.', 400);
+      throw new AppError(
+        'INVALID_FILE',
+        'Indeks file tidak valid.',
+        400
+      );
     }
 
     const index = Number.parseInt(rawIndex, 10);
     const { file } = jobs.getJobFile(req.params.id, index);
     const stat = await fs.promises.stat(file.path);
+
     const disposition = req.query.download === '1'
       ? 'attachment'
       : 'inline';
+
     const filename = path.basename(file.name);
     const range = parseRange(req.headers.range, stat.size);
 
@@ -200,7 +280,10 @@ router.get('/jobs/:id/file', async (req, res, next) => {
         'Content-Length': String(end - start + 1)
       });
 
-      const stream = fs.createReadStream(file.path, { start, end });
+      const stream = fs.createReadStream(file.path, {
+        start,
+        end
+      });
 
       stream.on('error', (error) => {
         if (!res.headersSent) next(error);
@@ -226,6 +309,7 @@ router.get('/jobs/:id/file', async (req, res, next) => {
   }
 });
 
+/* DOWNLOAD ZIP */
 router.get('/jobs/:id/zip', async (req, res, next) => {
   try {
     const { ZipArchive } = await import('archiver');
@@ -255,7 +339,9 @@ router.get('/jobs/:id/zip', async (req, res, next) => {
       'Cache-Control': 'no-store'
     });
 
-    const archive = new ZipArchive({ zlib: { level: 6 } });
+    const archive = new ZipArchive({
+      zlib: { level: 6 }
+    });
 
     archive.on('warning', (error) => {
       if (error.code !== 'ENOENT' && !res.headersSent) {
@@ -284,7 +370,9 @@ router.get('/jobs/:id/zip', async (req, res, next) => {
         ? basename
         : `${String(index + 1).padStart(2, '0')}-${basename}`;
 
-      archive.append(fs.createReadStream(file.path), { name });
+      archive.append(fs.createReadStream(file.path), {
+        name
+      });
     });
 
     await archive.finalize();
@@ -293,10 +381,7 @@ router.get('/jobs/:id/zip', async (req, res, next) => {
   }
 });
 
-/*
- * ENDPOINT TES BLOB
- * Mengunggah teks kecil ke Vercel Blob.
- */
+/* TES UPLOAD VERCEL BLOB */
 router.post('/blob-upload-test', async (req, res, next) => {
   try {
     const { put } = await import('@vercel/blob');
@@ -312,6 +397,7 @@ router.post('/blob-upload-test', async (req, res, next) => {
     );
 
     res.set('Cache-Control', 'no-store');
+
     res.json({
       ok: true,
       message: 'Upload Blob berhasil',
